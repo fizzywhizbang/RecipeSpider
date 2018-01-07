@@ -44,10 +44,10 @@ def contentScraper(self, url):
             instrtxt = instr.get_text()
             print(instrtxt)
             add_recipe = "insert into recipes (title, link, ingredients, description, image ,instructions) values (%s, %s, %s, %s, %s, %s)"
-            #cursor.execute(add_recipe, (title, link , ingtxt, description, imglink, instrtxt))
-            #db.commit()
+            cursor.execute(add_recipe, (title, link , ingtxt, description, imglink, instrtxt))
+            db.commit()
 #all recipes
-
+#incomplete
     if "allrecipes" in url:
         # title
         title = soup.find('meta', property='og:title')
@@ -80,5 +80,5 @@ def contentScraper(self, url):
             instrtxt = instr.get_text()
             print(instrtxt)
             add_recipe = "insert into recipes (title, link, ingredients, description, image ,instructions) values (%s, %s, %s, %s, %s, %s)"
-            #cursor.execute(add_recipe, (title, link, ingtxt, description, imglink, instrtxt))
-            #db.commit()
+            cursor.execute(add_recipe, (title, link, ingtxt, description, imglink, instrtxt))
+            db.commit()
