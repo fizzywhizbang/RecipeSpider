@@ -6,7 +6,20 @@ import requests
 from bs4 import BeautifulSoup
 import sys
 import MySQLdb
+import random
+from scrapme import getProxy
 from SiteLibrary import contentScraper
+from fake_useragent import UserAgent
+from time import sleep
+
+hdr = {
+    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
+    'Accept-Encoding': 'none',
+    'Accept-Language': 'en-US,en;q=0.8',
+    'Connection': 'keep-alive'}
+
 
 db = MySQLdb.connect(host="localhost", user="root", passwd="helifino", db="recipefinder", charset='utf8', use_unicode=True)
 cursor= db.cursor()
@@ -67,7 +80,13 @@ class RecursiveScraper:
                 print("%s exists" % url)
 
         self.urls.add(url)
-        response = requests.get(url)
+
+        #let's be nice and sleep between attempts
+        sleep(1)
+        proxy = getProxy()
+        print(proxy)
+
+        response = requests.get(url, headers=hdr, proxies=proxy)
         soup = BeautifulSoup(response.content, 'lxml')
         for link in soup.findAll("a"):
             childurl = self.preprocess_url(url, link.get("href"))

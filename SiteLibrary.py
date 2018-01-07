@@ -7,7 +7,7 @@ def contentScraper(self, url):
         'Accept-Language': 'en-US,en;q=0.8',
         'Connection': 'keep-alive'}
 
-    req = Request(url, headers=hdr)
+    req = Request(url, headers=headers, proxy=proxies)
 
     html = urlopen(req).read()
     soup = BeautifulSoup(html, "html.parser")
