@@ -62,7 +62,8 @@ class RecursiveScraper:
         query="select * from recipes where link=%s"
         cursor.execute(query, [url])
         result = cursor.fetchone()
-        return result
+        number_of_rows = result[0]
+        return number_of_rows
 
     def scrape(self, url=None):
         ''' Scrape the URL and its outward links in a depth-first order.
@@ -70,14 +71,15 @@ class RecursiveScraper:
         '''
         if url is None:
             url = self.mainurl
-        #check if url exists in database
-        print("Scraping {:s} ...".format(url))
-        if "print" in url:
 
-            if self.urlValidate(url) == 0:
-                contentScraper(url)
-            else:
-                print("%s exists" % url)
+
+        if "print" in url:
+            print("Scraping {:s} ...".format(url))
+            #check if url exists in database
+            #if self.urlValidate(url) == 0:
+            contentScraper(url)
+            #else:
+            #    print("%s exists" % url)
 
         self.urls.add(url)
 

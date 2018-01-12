@@ -1,4 +1,27 @@
-def contentScraper(self, url):
+import re
+from six.moves.urllib.parse import urlparse, urljoin, urlsplit, SplitResult
+from six.moves.urllib.request import urlopen, Request
+import requests
+from bs4 import BeautifulSoup
+import sys
+import MySQLdb
+import random
+from scrapme import getProxy
+from fake_useragent import UserAgent
+hdr = {
+    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
+    'Accept-Encoding': 'none',
+    'Accept-Language': 'en-US,en;q=0.8',
+    'Connection': 'keep-alive'}
+
+
+db = MySQLdb.connect(host="localhost", user="root", passwd="helifino", db="recipefinder", charset='utf8', use_unicode=True)
+cursor= db.cursor()
+proxy = getProxy()
+
+def contentScraper(url):
     hdr = {
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -7,10 +30,8 @@ def contentScraper(self, url):
         'Accept-Language': 'en-US,en;q=0.8',
         'Connection': 'keep-alive'}
 
-    req = Request(url, headers=headers, proxy=proxies)
-
-    html = urlopen(req).read()
-    soup = BeautifulSoup(html, "html.parser")
+    response = requests.get(url, headers=hdr, proxies=proxy)
+    soup = BeautifulSoup(response.content, "html.parser")
 # pinch of yum
     if "pinchofyum" in url:
         # title
@@ -82,3 +103,51 @@ def contentScraper(self, url):
             add_recipe = "insert into recipes (title, link, ingredients, description, image ,instructions) values (%s, %s, %s, %s, %s, %s)"
             cursor.execute(add_recipe, (title, link, ingtxt, description, imglink, instrtxt))
             db.commit()
+#rachelmansfield
+    if "rachlmansfield" in url:
+        # title
+        title = soup.find('div', itemprop='name')
+        title = title.get_text()
+        #print(title)
+        # link
+        link = soup.find('div', {'class': 'ERPTagline'})
+        linktxt = link.get_text()
+        linktxt = linktxt.replace("rachLmansfield","")
+        linktxt = linktxt.replace("Recipe by","")
+        linktxt = linktxt.replace("at","")
+        link = linktxt.strip()
+        #print(link)
+        # description contains no description on print page so we'll use the title which is pretty descriptive
+        descr = title
+        # date no date
+        #d = soup.find('meta', itemprop='uploadDate')
+        # image link
+        img = soup.find('link', itemprop='image')
+        #print(img["href"])
+        # ingredients
+        ingdiv = soup.find('div', {'class': 'ERSIngredients'})
+        ing = ""
+        for litag in ingdiv.find_all('li', class_='ingredient'):
+            # prints the p tag content
+            ing=ing + litag.text + "\n"
+        print(ing)
+        # instructions
+        instr = soup.find('div', {'class': 'ERSInstructions'})
+
+        if ing:
+            print("title:%s" % title)  # print title
+
+            #print("Date published %s" % d["content"])
+            #datePosted = d["content"]
+            print("Url: %s" % link)
+            link = link
+            print("Description: %s" % descr)
+            description = descr
+            print(img["href"])  # print image source
+            imglink = img["href"]
+            ingtxt = ing  # remove html entities
+            print(ing)  # print ingredients
+            instrtxt = instr
+            print(instrtxt)
+            #add_recipe = "insert into recipes (title, link, ingredients, description, image ,instructions) values (%s, %s, %s, %s, %s, %s)"
+            #cursor.execute(add_recipe, (title, link, ingtxt, description, imglink, instrtxt))
