@@ -9,6 +9,8 @@ import MySQLdb
 import random
 from scrapme import getProxy
 from SiteLibrary import contentScraper
+from SiteLibrary import printSiteList
+from SiteLibrary import noPrintSiteList
 from fake_useragent import UserAgent
 from time import sleep
 
@@ -69,17 +71,23 @@ class RecursiveScraper:
         ''' Scrape the URL and its outward links in a depth-first order.
             If URL argument is None, start from main page.
         '''
+
         if url is None:
             url = self.mainurl
+        if self.domain in printSiteList:
+            if "print" in url:
+                print("Scraping {:s} ...".format(url))
+                #check if url exists in database
+                #if self.urlValidate(url) == 0:
+                contentScraper(url)
+                #else:
+                #    print("%s exists" % url)
 
-
-        if "print" in url:
+        if self.domain in noPrintSiteList:
             print("Scraping {:s} ...".format(url))
-            #check if url exists in database
-            #if self.urlValidate(url) == 0:
+            # check if url exists in database
+            # if self.urlValidate(url) == 0:
             contentScraper(url)
-            #else:
-            #    print("%s exists" % url)
 
         self.urls.add(url)
 

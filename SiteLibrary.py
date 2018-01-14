@@ -9,6 +9,10 @@ import random
 from scrapme import getProxy
 from fake_useragent import UserAgent
 import time
+
+printSiteList = ['pinchofyum.com','rachlmansfield.com']
+noPrintSiteList = ['www.101cookbooks.com']
+
 hdr = {
     'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -38,84 +42,77 @@ def contentScraper(url):
         try:
             # title
             title = soup.find('meta', property='og:title')
+            title = title["content"]
             # link
             link = soup.find('meta', property='og:url')
+            link = link["content"]
             # description
             descr = soup.find('meta', property='og:description')
+            descr = descr["content"]
             # date
             d = soup.find('meta', property='article:published_time')
+            datePosted = d["content"]
             # image link
             img = soup.find('meta', property='og:image')
+            img = img["content"]
             # ingredients
             ing = soup.find('div', {'class': 'tasty-recipes-ingredients'})
+            ing = ing.get_text()  # remove html entities
             # instructions
             instr = soup.find('div', {'class': 'tasty-recipes-instructions'})
-
+            instr = instr.get_text()
             if ing:
-                print("title:%s" % title["content"])  # print title
-                title = title["content"]
+                print("title:%s" % title)  # print title
                 #print("Date published %s" % d["content"])
-                datePosted = d["content"]
-                print("Url: %s" % link["content"])
-                link = link["content"]
-                print("Description: %s" % descr["content"])
-                description = descr["content"]
-                print(img["content"])  # print image source
-                imglink = img["content"]
-                ingtxt = ing.get_text()  # remove html entities
+                print("Url: %s" % link)
+                print("Description: %s" % descr)
+                print(img)  # print image source
                 print(ingtxt)  # print ingredients
-                instrtxt = instr.get_text()
-                print(instrtxt)
+                print(instr)
                 add_recipe = "insert into recipes (title, link, ingredients, description, image , dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link , ingtxt, description, imglink, instrtxt))
+                cursor.execute(add_recipe, (title, link , ing, descr, img, instr))
                 db.commit()
         except:
-            #if fail log
-            add_log = "insert into faillog (link,timestamp) values (%s, %s)"
-            ts = time.strftime('%Y-%m-%d %H:%M:%S')
-            cursor.execute(add_log, url, ts)
+            print("no recipe found @ %s" % link)
 #all recipes
 #incomplete
     if "allrecipes" in url:
         try:
             # title
             title = soup.find('meta', property='og:title')
+            title = title["content"]
             # link
             link = soup.find('meta', property='og:url')
+            link = link["content"]
             # description
             descr = soup.find('div', {'class': 'recipe-print__description'})
+            descr = descr["content"]
             # date
             d = soup.find('meta', itemprop='uploadDate')
+            datePosted = d["content"]
             # image link
             img = soup.find('meta', property='og:image')
+            img = img["content"]
             # ingredients
             ing = soup.find('div', {'class': 'recpie-print__container2'})
+            ing = ing.get_text()  # remove html entities
             # instructions
             instr = soup.find('ol', {'class': 'recipe_print__directions'})
-
+            instr = instr.get_text()
             if ing:
-                print("title:%s" % title["content"])  # print title
-                title = title["content"]
-                print("Date published %s" % d["content"])
-                datePosted = d["content"]
-                print("Url: %s" % link["content"])
-                link = link["content"]
-                print("Description: %s" % descr["content"])
-                description = descr["content"]
-                print(img["content"])  # print image source
-                imglink = img["content"]
-                ingtxt = ing.get_text()  # remove html entities
-                print(ingtxt)  # print ingredients
-                instrtxt = instr.get_text()
-                print(instrtxt)
+                print("title:%s" % title)  # print title
+                print("Date published %s" % datePosted)
+                print("Url: %s" % link)
+                print("Description: %s" % descr)
+                print(img)  # print image source
+                print(ing)  # print ingredients
+                print(instr)
                 add_recipe = "insert into recipes (title, link, ingredients, description, image ,instructions) values (%s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ingtxt, description, imglink, instrtxt))
+                cursor.execute(add_recipe, (title, link, ing, descr, img, instr))
                 db.commit()
         except:
-            # if fail log
-            add_log = "insert into faillog (link,timestamp) values (%s, %s)"
-            ts = time.strftime('%Y-%m-%d %H:%M:%S')
-            cursor.execute(add_log, url, ts)
+            print("no recipe found @ %s" % link)
+
 #rachelmansfield
     if "rachlmansfield" in url:
         try:
@@ -134,10 +131,10 @@ def contentScraper(url):
             # description contains no description on print page so we'll use the title which is pretty descriptive
             descr = title
             # date no date
-            #d = soup.find('meta', itemprop='uploadDate')
             datePosted = time.strftime('%Y-%m-%d %H:%M:%S')
             # image link
             img = soup.find('link', itemprop='image')
+            img = img["href"]
             #print(img["href"])
             # ingredients
             ingdiv = soup.find('div', {'class': 'ERSIngredients'})
@@ -156,22 +153,63 @@ def contentScraper(url):
             if ing:
                 print("title:%s" % title)  # print title
                 print("Date published %s" % datePosted)
-
-                link = link
                 print("Url: %s" % link)
-                description = descr
-                print("Description: %s" % description)
-                imglink = img["href"]
-                print("imglink: %s" % imglink)  # print image source
-                ingtxt = ing  # remove html entities
-                print("ingredients: %s" % ingtxt)  # print ingredients
-                instrtxt = instr
-                print("instructions: %s" % instrtxt)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ingtxt, description, imglink, datePosted, instrtxt))
+                print("Description: %s" % descr)
+                print("imglink: %s" % img)  # print image source
+                print("ingredients: %s" % ing)  # print ingredients
+                print("instructions: %s" % instr)
+                add_recipe = "insert into recipes (title, link, ing, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                cursor.execute(add_recipe, (title, link, ing, descr, img, datePosted, instr))
                 db.commit()
         except:
-            #if fail log
-            add_log = "insert into faillog (link,timestamp) values (%s, %s)"
-            ts = time.strftime('%Y-%m-%d %H:%M:%S')
-            cursor.execute(add_log, url, ts)
+            print("no recipe found @ %s" % link)
+
+#101cookbooks.com
+    if "101cookbooks" in url:
+        try:
+            # title
+            title = soup.find('meta', property='og:title')
+            title = title["content"]
+            #print(title)
+            # link
+            link = soup.find('meta', property='og:url')
+            link = link["content"]
+            #print(link)
+            # description
+            descr = soup.find('meta', {"name":"description"})
+            descr = descr["content"]
+            #print(descr)
+            # date no date
+            datePosted = time.strftime('%Y-%m-%d %H:%M:%S')
+            # image link
+            img = soup.find('meta', property='og:image')
+            imglink = img["content"]
+            #print(imglink)
+            # ingredients
+            ingdiv = soup.find('div', id="recipe")
+            ing = ""
+            #containted in blockquote in recipe div
+            for bq in ingdiv.find_all('blockquote'):
+                # prints the p tag content
+                ing = ing + bq.text + "\n"
+            #print(ing)
+            # instructions are in the same div as the ingredients but not in the blockquote
+            instr = ""
+            for p in ingdiv.find_all('p'):
+                # prints the p tag content
+                instr = instr + p.text + "\n"
+            #print(instr)
+            if ing:
+                print("title:%s" % title)  # print title
+                print("Date published %s" % datePosted)
+                print("Url: %s" % link)
+                print("Description: %s" % descr)
+                print("imglink: %s" % imglink)  # print image source
+                print("ingredients: %s" % ing)  # print ingredients
+                print("instructions: %s" % instr)
+                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
+                db.commit()
+
+        except:
+            print("no recipe found @ %s" % link)
