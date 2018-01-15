@@ -11,9 +11,11 @@ from fake_useragent import UserAgent
 import time
 
 
-sites = ['https://pinchofyum.com', 'http://rachlmansfield.com','https://www.101cookbooks.com','http://12tomatoes.com','http://allrecipes.com']
+sites = ['https://pinchofyum.com', 'http://rachlmansfield.com','https://www.101cookbooks.com','http://12tomatoes.com','http://allrecipes.com','https://www.americastestkitchen.com','https://www.bbc.co.uk/food/recipes/']
+
 printSiteList = ['pinchofyum.com','rachlmansfield.com','allrecipes.com']
-noPrintSiteList = ['www.101cookbooks.com','12tomatoes.com']
+
+noPrintSiteList = ['www.101cookbooks.com','12tomatoes.com','www.americastestkitchen.com','www.bbc.co.uk']
 
 db = MySQLdb.connect(host="localhost", user="root", passwd="helifino", db="recipefinder", charset='utf8', use_unicode=True)
 cursor= db.cursor()
@@ -317,4 +319,114 @@ def contentScraper(url):
         except:
             print("no recipe found @ %s" % url)
 
-#
+#www.americastestkitchen.com
+#of course they want us to pay for a subscription and we should obey the google off tags but.....
+
+    if "americastestkitchen" in url:
+        try:
+            # title
+            title = soup.find('meta', property='og:title')
+            title = title["content"]
+            print(title)
+            # link
+            link = soup.find('meta', property='og:url')
+            link = link["content"]
+            print(link)
+            # image link
+            img = soup.find('meta', property='og:image')
+            imglink = img["content"]
+            print(imglink)
+            # description
+            descr = soup.find('meta', {"name":"description"})
+            descr = descr["content"]
+            print(descr)
+            # date no date published
+            datePosted = time.strftime('%Y-%m-%d %H:%M:%S')
+            # ingredients
+            ingdiv = soup.find('div', {"class":"recipe__ingredient"})
+            ing = ""
+            #containted in tables in recipe div
+            #measurement and ingredient are in different cells
+            for table in ingdiv.find_all('table'):
+                for td in table.find_all('td'):
+                    # prints the p tag content
+                    ing = ing + td.text.strip()
+                ing = ing + "\n"
+            print(ing)
+            # instructions are in the same div as the ingredients but not in the blockquote
+            instr = ""
+            instrdiv = soup.find('div', {"class": "recipe__instructions--content blurred"})
+            for p in instrdiv.find_all('p'):
+                # prints the p tag content
+                instr = instr + p.text + "\n"
+            print(instr)
+            if ing:
+                print("title:%s" % title)  # print title
+                print("Date published %s" % datePosted)
+                print("Url: %s" % link)
+                print("Description: %s" % descr)
+                print("imglink: %s" % imglink)  # print image source
+                print("ingredients: %s" % ing)  # print ingredients
+                print("instructions: %s" % instr)
+                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
+                db.commit()
+
+        except:
+            print("no recipe found @ %s" % url)
+
+#bbc.co.uk
+
+    if "bbc.co.uk" in url:
+        try:
+            # title
+            title = soup.find('h1', {"class": "content-title__text"})
+            title = title.text
+            print(title)
+
+            # link
+            link = url
+            print(link)
+            # image link
+            img = soup.find('img', {'class':'recipe-media__image'})
+            imglink = img["src"]
+            print(imglink)
+
+            # description
+            descr = soup.find('p', {"class":"recipe-description__text"})
+            descr = descr.text
+            print(descr)
+
+            # date no date published
+            datePosted = time.strftime('%Y-%m-%d %H:%M:%S')
+            # ingredients
+            ingdiv = soup.find('ul', {"class":"recipe-ingredients__list"})
+            ing = ""
+            #ingredients
+            for li in ingdiv.find_all('li'):
+                ing = ing + li.text + "\n"
+            print(ing)
+
+            # instructions are in the same div as the ingredients but not in the blockquote
+            instr = ""
+            instrdiv = soup.find('ol', {"class": "recipe-method__list"})
+            for li in instrdiv.find_all('li'):
+                for p in li.find_all('p'):
+                    # prints the p tag content
+                    instr = instr + p.text + "\n"
+            print(instr)
+
+            if ing:
+                print("title:%s" % title)  # print title
+                print("Date published %s" % datePosted)
+                print("Url: %s" % link)
+                print("Description: %s" % descr)
+                print("imglink: %s" % imglink)  # print image source
+                print("ingredients: %s" % ing)  # print ingredients
+                print("instructions: %s" % instr)
+                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
+                db.commit()
+
+        except:
+            print("no recipe found @ %s" % url)
