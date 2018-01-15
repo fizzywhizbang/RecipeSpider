@@ -10,17 +10,10 @@ from scrapme import getProxy
 from fake_useragent import UserAgent
 import time
 
-printSiteList = ['pinchofyum.com','rachlmansfield.com']
-noPrintSiteList = ['www.101cookbooks.com']
 
-hdr = {
-    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-    'Accept-Encoding': 'none',
-    'Accept-Language': 'en-US,en;q=0.8',
-    'Connection': 'keep-alive'}
-
+sites = ['https://pinchofyum.com', 'http://rachlmansfield.com','https://www.101cookbooks.com','http://12tomatoes.com','http://allrecipes.com']
+printSiteList = ['pinchofyum.com','rachlmansfield.com','allrecipes.com']
+noPrintSiteList = ['www.101cookbooks.com','12tomatoes.com']
 
 db = MySQLdb.connect(host="localhost", user="root", passwd="helifino", db="recipefinder", charset='utf8', use_unicode=True)
 cursor= db.cursor()
@@ -73,7 +66,7 @@ def contentScraper(url):
                 cursor.execute(add_recipe, (title, link , ing, descr, img, instr))
                 db.commit()
         except:
-            print("no recipe found @ %s" % link)
+            print("no recipe found @ %s" % url)
 #all recipes
 #incomplete
     if "allrecipes" in url:
@@ -111,7 +104,7 @@ def contentScraper(url):
                 cursor.execute(add_recipe, (title, link, ing, descr, img, instr))
                 db.commit()
         except:
-            print("no recipe found @ %s" % link)
+            print("no recipe found @ %s" % url)
 
 #rachelmansfield
     if "rachlmansfield" in url:
@@ -162,7 +155,7 @@ def contentScraper(url):
                 cursor.execute(add_recipe, (title, link, ing, descr, img, datePosted, instr))
                 db.commit()
         except:
-            print("no recipe found @ %s" % link)
+            print("no recipe found @ %s" % url)
 
 #101cookbooks.com
     if "101cookbooks" in url:
@@ -212,4 +205,116 @@ def contentScraper(url):
                 db.commit()
 
         except:
-            print("no recipe found @ %s" % link)
+            print("no recipe found @ %s" % url)
+#12tomatoes.com
+    if "12tomatoes" in url:
+        try:
+            # title
+            title = soup.find('meta', property='og:title')
+            title = title["content"]
+            #print(title)
+            # link
+            link = soup.find('meta', property='og:url')
+            link = link["content"]
+            #print(link)
+            # description
+            descr = soup.find('meta', {"name":"description"})
+            descr = descr["content"]
+            #print(descr)
+            # date
+            d = soup.find('meta', property='article:published_time')
+            datePosted = d["content"]
+            datePosted = datePosted.replace("T"," ")
+            datePosted = datePosted.replace("+00:00","")
+            # image link
+            img = soup.find('meta', property='og:image')
+            imglink = img["content"]
+            #print(imglink)
+            # ingredients
+            ingdiv = soup.find('div', id="recipe-ingredients")
+            ing = ""
+            #containted in blockquote in recipe div
+            for li in ingdiv.find_all('li'):
+                # prints the p tag content
+                ing = ing + li.text + "\n"
+            #print(ing)
+            # instructions are in the same div as the ingredients but not in the blockquote
+            instr = ""
+            instrdiv = soup.find('div', id="recipe-prep")
+            for li in instrdiv.find_all('li'):
+                # prints the p tag content
+                instr = instr + li.text + "\n"
+            #print(instr)
+            if ing:
+                print("title:%s" % title)  # print title
+                print("Date published %s" % datePosted)
+                print("Url: %s" % link)
+                print("Description: %s" % descr)
+                print("imglink: %s" % imglink)  # print image source
+                print("ingredients: %s" % ing)  # print ingredients
+                print("instructions: %s" % instr)
+                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
+                db.commit()
+
+        except:
+            print("no recipe found @ %s" % url)
+
+#allrecipes.com
+    if "allrecipes" in url:
+        try:
+            # title
+            title = soup.find('meta', property='og:title')
+            title = title["content"]
+            #print(title)
+
+            link = soup.find('meta', property='og:url')
+            link = link["content"]
+            #print(link)
+
+            # description
+            descr = soup.find('div', {"class":"recipe-print__description"})
+            descr = descr.text
+            #print(descr)
+            # date no date
+            datePosted = time.strftime('%Y-%m-%d %H:%M:%S')
+            # image link
+
+            img = soup.find('img', {'class':'recipe-print__recipe-img'})
+            imglink = img["src"]
+            #print(imglink)
+            # ingredients
+            ingdiv = soup.find('div', {"class":"recipe-print__container2"})
+            ing = ""
+            #containted in blockquote in recipe div
+            for ul in ingdiv.find_all("ul"):
+                for li in ul.find_all('li'):
+                    # prints the p tag content
+                    ing = ing + li.text.strip()
+                    ing = ing + "\n"
+            #print(ing)
+
+            # instructions are in the same div as the ingredients but not in the blockquote
+            instr = ""
+            for ol in ingdiv.find_all("ol"):
+                for li in ol.find_all("li"):
+                    # prints the p tag content
+                    instr = instr + li.text + "\n"
+            #print(instr)
+
+            if ing:
+                print("title:%s" % title)  # print title
+                print("Date published %s" % datePosted)
+                print("Url: %s" % link)
+                print("Description: %s" % descr)
+                print("imglink: %s" % imglink)  # print image source
+                print("ingredients: %s" % ing)  # print ingredients
+                print("instructions: %s" % instr)
+                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
+                db.commit()
+
+        except:
+            print("no recipe found @ %s" % url)
+
+#

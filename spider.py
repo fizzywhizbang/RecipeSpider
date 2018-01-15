@@ -29,6 +29,7 @@ cursor= db.cursor()
 class RecursiveScraper:
     ''' Scrape URLs in a recursive manner.
     '''
+
     def __init__(self, url):
         ''' Constructor to initialize domain name and main URL.
         '''
@@ -74,6 +75,7 @@ class RecursiveScraper:
 
         if url is None:
             url = self.mainurl
+        print("checking %s" % url)
         if self.domain in printSiteList:
             if "print" in url:
                 print("Scraping {:s} ...".format(url))
@@ -83,19 +85,18 @@ class RecursiveScraper:
                 #else:
                 #    print("%s exists" % url)
 
-        if self.domain in noPrintSiteList:
+        if self.domain in noPrintSiteList and ".rdf" not in url and ".rss" not in url and "print" not in url: #skip news feeds and sites with poorly formated print pages
             print("Scraping {:s} ...".format(url))
             # check if url exists in database
-            # if self.urlValidate(url) == 0:
+            #if self.urlValidate(url) == 0:
             contentScraper(url)
 
         self.urls.add(url)
 
         #let's be nice and sleep between attempts
-        sleep(1)
+        sleep(2)
         proxy = getProxy()
         print(proxy)
-
         response = requests.get(url, headers=hdr, proxies=proxy)
         soup = BeautifulSoup(response.content, 'lxml')
         for link in soup.findAll("a"):
@@ -107,11 +108,10 @@ class RecursiveScraper:
 if __name__ == '__main__':
     print("%s" % (sys.argv[1])) #for testing
     #instantiate recursive scraper with domain supplied at the command line
+    #this will be removed once automated
     rscraper = RecursiveScraper(sys.argv[1])
-    #rscraper = RecursiveScraper("https://pinchofyum.com/recipes/")
     #scrape the url
     rscraper.scrape()
-    #print the urls
-    #print(rscraper.urls)
+
 
 db.close()
