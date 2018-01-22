@@ -14,13 +14,13 @@ import datetime
 
 sites = ['https://pinchofyum.com', 'http://rachlmansfield.com','https://www.101cookbooks.com','http://12tomatoes.com','http://allrecipes.com','https://www.americastestkitchen.com','https://www.bbc.co.uk/food/recipes/']
 sites.extend(['https://www.bbcgoodfood.com','https://www.bhg.com','https://www.bigoven.com','https://www.bonappetit.com','https://www.chowhound.com','http://www.cookingchanneltv.com','https://cooking.nytimes.com'])
-sites.extend(['http://www.cooks.com','https://www.cooksillustrated.com','https://www.dadcooksdinner.com','http://www.eatingwell.com'])
+sites.extend(['http://www.cooks.com','https://www.cooksillustrated.com','https://www.dadcooksdinner.com','http://www.eatingwell.com','https://elanaspantry.com'])
 #sites to pull from the print option as this should make the scraping faster
 printSiteList = ['rachlmansfield.com','www.bhg.com']
 #sites either without a print option or poorly formated print pages
 noPrintSiteList = ['allrecipes.com','pinchofyum.com','www.101cookbooks.com','12tomatoes.com','www.americastestkitchen.com','www.bbc.co.uk','www.bbcgoodfood.com','www.bigoven.com']
 noPrintSiteList.extend(['www.bigoven.com','www.bonappetit.com','www.chowhound.com','www.cookingchanneltv.com','cooking.nytimes.com','www.cooks.com','www.cooksillustrated.com'])
-noPrintSiteList.extend(['www.dadcooksdinner.com','www.eatingwell.com'])
+noPrintSiteList.extend(['www.dadcooksdinner.com','www.eatingwell.com','elanaspantry.com'])
 db = MySQLdb.connect(host="localhost", user="root", passwd="helifino", db="recipefinder", charset='utf8', use_unicode=True)
 cursor= db.cursor()
 proxy = getProxy()
@@ -82,7 +82,6 @@ def contentScraper(url, domain):
                     #print(instr)
 
                     if ing:
-                        print(type)
                         print("title:%s" % title)  # print title
                         print("Date published %s" % datePosted)
                         print("Url: %s" % link)
@@ -665,7 +664,6 @@ def contentScraper(url, domain):
             #print(instr)
 
             if ing:
-                print(type)
                 print("title:%s" % title)  # print title
                 print("Date published %s" % datePosted)
                 print("Url: %s" % link)
@@ -716,7 +714,6 @@ def contentScraper(url, domain):
             #print(instr)
 
             if ing:
-                print(type)
                 print("title:%s" % title)  # print title
                 print("Date published %s" % datePosted)
                 print("Url: %s" % link)
@@ -771,7 +768,6 @@ def contentScraper(url, domain):
             print(instr)
 
             if ing:
-                print(type)
                 print("title:%s" % title)  # print title
                 print("Date published %s" % datePosted)
                 print("Url: %s" % link)
@@ -931,7 +927,6 @@ def contentScraper(url, domain):
             #print(instr)
 
             if ing:
-                print(type)
                 print("title:%s" % title)  # print title
                 print("Date published %s" % datePosted)
                 print("Url: %s" % link)
@@ -950,10 +945,11 @@ def contentScraper(url, domain):
 #https://www.dadcooksdinner.com/pressure-cooker-baby-back-ribs/
     if "dadcooksdinner.com" in url:
         try:
-            rawdata = soup.find('script', type='application/ld+json').text
+
             for recipe in soup.find_all('script', type='application/ld+json'):
                 data = json.loads(recipe.text)
-                if data['@type'] == "Recipe":
+                if "Recipe" in data['@type']:
+                    rawdata = soup.find('script', type='application/ld+json').text
                     # title
                     title = data['name']
                     print(title)
@@ -1036,7 +1032,6 @@ def contentScraper(url, domain):
             print(instr)
 
             if ing:
-                print(type)
                 print("title:%s" % title)  # print title
                 print("Date published %s" % datePosted)
                 print("Url: %s" % link)
@@ -1050,3 +1045,55 @@ def contentScraper(url, domain):
 
        except:
            print("no recipe found @ %s" % url)
+#elanaspantry.com
+    if "elanaspantry.com" in url:
+        try:
+            # title
+            title = soup.find("meta", property="og:title")
+            title = title["content"]
+            print(title)
+            # link
+            link = soup.find("meta", property="og:url")
+            link = link["content"]
+            print(link)
+            # image link
+            imglink = soup.find("meta", property="og:image")
+            imglink = imglink["content"]
+            print(imglink)
+            # description
+            descr = soup.find("meta", property="og:description")
+            descr = descr["content"]
+            print(descr)
+            # date published
+            d = soup.find("meta", property="article:published_time")
+            datePosted = d["content"].replace("T", " ")[:-6]
+            print(datePosted)
+
+            # ingredients loop through the ingredient list
+            ing = ""
+            ingList = soup.find("ul", {"class": "wpurp-recipe-ingredients"})
+            for li in ingList.find_all("li"):
+                ing += li.text + "\n"
+            print(ing)
+
+            # instructions
+            instr = ""
+            instrdiv = soup.find("ol", {"class": "wpurp-recipe-instructions"})
+            for li in instrdiv.find_all("li"):
+                instr += li.text + "\n"
+            print(instr)
+
+            if ing:
+                print("title:%s" % title)  # print title
+                print("Date published %s" % datePosted)
+                print("Url: %s" % link)
+                print("Description: %s" % descr)
+                print("imglink: %s" % imglink)  # print image source
+                print("ingredients: %s" % ing)  # print ingredients
+                print("instructions: %s" % instr)
+                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
+                db.commit()
+
+        except:
+            print("no recipe found @ %s" % url)
