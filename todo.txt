@@ -1,53 +1,55 @@
-1/13/2018 101cookbookscom.php
-1/14/2018 12tomatoescom.php
-1/15/2018 Allrecipescom.php
-01/15/2018 Americastestkitchencom.php
-01/15/2018 Bbccouk.php
-1/15/2018 Bbcgoodfoodcom.php
-1/21/2018 Bhgcom.php
+1/13/2018 101cookbooks.com
+1/14/2018 12tomatoes.com
+1/15/2018 Allrecipes.com
+01/15/2018 Americastestkitchen.com
+01/15/2018 Bbccouk
+1/15/2018 Bbcgoodfood.com
+1/21/2018 Bhg.com
+1/21/2018 Bigoven.com
+1/22/2018 Bonappetit.com
 
-not done Aboutcom.php now The Spruce
+not done About.com now The Spruce
 
-Bigovencom.php
-Bonappetitcom.php
-Bookmark.php
-Bravotvcom.php
-Chowcom.php
-Cookingchanneltvcom.php
-Cookingcom.php
-Cookingnytimescom.php
-Cookscom.php
-Cooksillustratedcom.php
-https://www.dadcooksdinner.com add
-Eatingwellcom.php
-Elanaspantrycom.php
-12/30/2017 Epicuriouscom.php
-Food52com.php
-Foodandwinecom.php
-Foodcom.php
-Foodnetworkcom.php
-Foodnetworkcouk.php
-Kingarthurflourcom.php
-Marthastewartcom.php
-MicrodataDataVocabulary.php
-MicrodataRdfDataVocabulary.php
-MicrodataSchema.php
-Microformat.php
-Minimalistbakercom.php
-Myrecipescom.php
-Nytimescom.php
-Ohsheglowscom.php
-Pillsburycom.php
-Pinchofyumcom.php
-12/30/2017 Rachlmansfieldcom.php
-Realsimplecom.php
-Recipecom.php
-Saveurcom.php
-Seriouseatscom.php
-Simplyrecipescom.php
-Sparkpeoplecom.php
-Tasteofhomecom.php
-Thedailymealcom.php
-Thekitchencom.php
+
+
+Bookmark
+Bravotv.com
+Chow.com
+Cookingchanneltv.com
+Cooking.com
+Cookingnytimes.com
+Cooks.com
+Cooksillustrated.com
+https://www.dadcooksdinner..com add
+Eatingwell.com
+Elanaspantry.com
+12/30/2017 Epicurious.com
+Food52.com
+Foodandwine.com
+Food.com
+Foodnetwork.com
+Foodnetworkcouk
+Kingarthurflour.com
+Marthastewart.com
+MicrodataDataVocabulary
+MicrodataRdfDataVocabulary
+MicrodataSchema
+Microformat
+Minimalistbaker.com
+Myrecipes.com
+Nytimes.com
+Ohsheglows.com
+Pillsbury.com
+Pinchofyum.com
+12/30/2017 Rachlmansfield.com
+Realsimple.com
+Recipe.com
+Saveur.com
+Seriouseats.com
+Simplyrecipes.com
+Sparkpeople.com
+Tasteofhome.com
+Thedailymeal.com
+Thekitchen.com
 parsers.ini
 updatelist.txt
