@@ -10,15 +10,16 @@ from scrapme import getProxy
 from fake_useragent import UserAgent
 import time
 import json
+import datetime
 
 sites = ['https://pinchofyum.com', 'http://rachlmansfield.com','https://www.101cookbooks.com','http://12tomatoes.com','http://allrecipes.com','https://www.americastestkitchen.com','https://www.bbc.co.uk/food/recipes/']
-sites.extend(['https://www.bbcgoodfood.com','https://www.bhg.com','https://www.bigoven.com','https://www.bonappetit.com'])
+sites.extend(['https://www.bbcgoodfood.com','https://www.bhg.com','https://www.bigoven.com','https://www.bonappetit.com','https://www.chowhound.com'])
 
 #sites to pull from the print option as this should make the scraping faster
 printSiteList = ['pinchofyum.com','rachlmansfield.com','allrecipes.com','www.bhg.com']
 #sites either without a print option or poorly formated print pages
 noPrintSiteList = ['www.101cookbooks.com','12tomatoes.com','www.americastestkitchen.com','www.bbc.co.uk','www.bbcgoodfood.com','www.bigoven.com']
-noPrintSiteList.extend(['www.bigoven.com','www.bonappetit.com'])
+noPrintSiteList.extend(['www.bigoven.com','www.bonappetit.com','www.chowhound.com'])
 
 db = MySQLdb.connect(host="localhost", user="root", passwd="helifino", db="recipefinder", charset='utf8', use_unicode=True)
 cursor= db.cursor()
@@ -595,7 +596,7 @@ def contentScraper(url):
     if "bonappetit.com" in url:
         try:
             #json and html scraping since the instructions are not in the json
-            type = "json"
+
             data = json.loads(soup.find('script', type='application/ld+json').text)
             #title
             title = data['name']
@@ -644,3 +645,53 @@ def contentScraper(url):
 
         except:
             print("no recipe found @ %s" % url)
+#chowhound.com
+    if "chowhound.com" in url:
+       try:
+            #json and html scraping since the instructions are not in the json
+            data = json.loads(soup.find('script', type='application/ld+json').text)
+            #title
+            title = data['name']
+            #print(title)
+            # link
+            link = soup.find('meta', property='og:url')
+            link = link["content"]
+            #print(link)
+            #image link
+            imglink = data['image']['url']
+            #print(imglink)
+            #description
+            descr = data['description']
+            #print(descr)
+            #date published
+            d = data['datePublished']
+            #Dec 18, 2017 09:17 AM
+            datePosted = datetime.datetime.strptime(d, "%b %d, %Y %I:%M %p").strftime("%Y-%m-%d %H:%M:%S")
+            #print(datePosted)
+            #ingredients loop through the ingredient list
+            ing = ""
+            ingList = data['recipeIngredient']
+            i = 0
+            while i < len(ingList):
+                ing += ingList[i] + "\n"
+                i += 1
+            #print(ing)
+            #instructions
+            instr = data['recipeInstructions']
+            #print(instr)
+
+            if ing:
+                print(type)
+                print("title:%s" % title)  # print title
+                print("Date published %s" % datePosted)
+                print("Url: %s" % link)
+                print("Description: %s" % descr)
+                print("imglink: %s" % imglink)  # print image source
+                print("ingredients: %s" % ing)  # print ingredients
+                print("instructions: %s" % instr)
+                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
+                db.commit()
+
+       except:
+           print("no recipe found @ %s" % url)
