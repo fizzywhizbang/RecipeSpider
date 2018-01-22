@@ -81,7 +81,7 @@ class RecursiveScraper:
                 print("Scraping {:s} ...".format(url))
                 #check if url exists in database
                 #if self.urlValidate(url) == 0:
-                contentScraper(url)
+                contentScraper(url, self.domain)
                 #else:
                 #    print("%s exists" % url)
 
@@ -89,7 +89,7 @@ class RecursiveScraper:
             print("Scraping {:s} ...".format(url))
             # check if url exists in database
             #if self.urlValidate(url) == 0:
-            contentScraper(url)
+            contentScraper(url, self.domain)
 
         self.urls.add(url)
 
