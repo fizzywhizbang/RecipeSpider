@@ -12,29 +12,37 @@ import time
 import json
 import datetime
 
+#this will be used for an automated spider
 sites = ['https://pinchofyum.com', 'http://rachlmansfield.com','https://www.101cookbooks.com','http://12tomatoes.com','http://allrecipes.com','https://www.americastestkitchen.com','https://www.bbc.co.uk/food/recipes/']
 sites.extend(['https://www.bbcgoodfood.com','https://www.bhg.com','https://www.bigoven.com','https://www.bonappetit.com','https://www.chowhound.com','http://www.cookingchanneltv.com','https://cooking.nytimes.com'])
 sites.extend(['http://www.cooks.com','https://www.cooksillustrated.com','https://www.dadcooksdinner.com','http://www.eatingwell.com','https://elanaspantry.com','https://www.epicurious.com'])
-sites.extend(['https://food52.com','http://www.foodandwine.com','http://www.geniuskitchen.com','http://www.foodnetwork.com'])
+sites.extend(['https://food52.com','http://www.foodandwine.com','http://www.geniuskitchen.com','http://www.foodnetwork.com','http://www.foodnetwork.co.uk'])
+
 #sites to pull from the print option as this should make the scraping faster
 printSiteList = ['rachlmansfield.com','www.bhg.com']
+
 #sites either without a print option or poorly formated print pages
 noPrintSiteList = ['allrecipes.com','pinchofyum.com','www.101cookbooks.com','12tomatoes.com','www.americastestkitchen.com','www.bbc.co.uk','www.bbcgoodfood.com','www.bigoven.com']
 noPrintSiteList.extend(['www.bigoven.com','www.bonappetit.com','www.chowhound.com','www.cookingchanneltv.com','cooking.nytimes.com','www.cooks.com','www.cooksillustrated.com'])
 noPrintSiteList.extend(['www.dadcooksdinner.com','www.eatingwell.com','elanaspantry.com','www.epicurious.com','food52.com','www.foodandwine.com','www.geniuskitchen.com'])
-noPrintSiteList.extend(['www.foodnetwork.com'])
+noPrintSiteList.extend(['www.foodnetwork.com','www.foodnetwork.co.uk'])
+
+#database connection
 db = MySQLdb.connect(host="localhost", user="root", passwd="helifino", db="recipefinder", charset='utf8', use_unicode=True)
 cursor= db.cursor()
+
+#get a proxy so I don't get blocked from spidering web sites (it has happened already)
 proxy = getProxy()
 
-
+#this function is to make sure we don't have duplicates in the datbase
 def urlValidate(url):
     cur = db.cursor()
     cur.execute("select count(*) from recipes where link=%s", [url])
     for row in cur.fetchall():
         return row[0]
-
+#this is for scraping all content
 def contentScraper(url, domain):
+    #this is to set the header so the website thinks I am a web browser
     hdr = {
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -42,9 +50,10 @@ def contentScraper(url, domain):
         'Accept-Encoding': 'none',
         'Accept-Language': 'en-US,en;q=0.8',
         'Connection': 'keep-alive'}
-
+    #pull the page data
     response = requests.get(url, headers=hdr, proxies=proxy)
-    soup = BeautifulSoup(response.content, "html.parser")
+    #put it in BS
+    soup = BeautifulSoup(response.content, "lxml")
 
 # pinch of yum
     if "pinchofyum" in url:
@@ -1366,5 +1375,59 @@ def contentScraper(url, domain):
                 cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata))
                 db.commit()
 
+        except:
+            print("no recipe found @ %s" % url)
+#foodnetwork.co.uk
+    if "foodnetwork.co.uk" in url:
+        try:
+            # title
+            title = soup.find("meta", property="og:title")
+            title = title["content"]
+            print(title)
+            # link
+            link = soup.find("meta", property="og:url")
+            link = link["content"]
+            print(link)
+
+            # image link
+            imglink = soup.find("meta", property="og:image")
+            imglink = imglink["content"]
+            print(imglink)
+
+            # description
+            descr = soup.find("meta", property="og:description")
+            descr = descr["content"]
+            print(descr)
+
+            # date published
+            datePosted = time.strftime('%Y-%m-%d %H:%M:%S')
+
+            # ingredients loop through the ingredient list
+            ing = ""
+            ingList = soup.find("ul", {"class": "ingredient-list"})
+            for li in ingList.find_all("li"):
+                ing += li.text.strip() + " "
+                ing += "\n"
+            print(ing)
+
+            # instructions
+            instr = ""
+            instrdiv = soup.find("div", itemprop="recipeInstructions")
+            for p in instrdiv.find_all("p"):
+                instr += p.text + "\n"
+            print(instr)
+
+            if ing:
+                print("title:%s" % title)  # print title
+                print("Date published %s" % datePosted)
+                print("Url: %s" % link)
+                print("Description: %s" % descr)
+                print("imglink: %s" % imglink)  # print image source
+                print("ingredients: %s" % ing)  # print ingredients
+                print("instructions: %s" % instr)
+                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
+                db.commit()
+            
         except:
             print("no recipe found @ %s" % url)
