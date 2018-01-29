@@ -34,6 +34,14 @@ cursor= db.cursor()
 #get a proxy so I don't get blocked from spidering web sites (it has happened already)
 proxy = getProxy()
 
+def preSeed(url):
+    cur = db.cursor()
+    cur.execute("select link from recipes where link like %s", ("%" + url + "%",))
+    seed = set()
+    for row in cur.fetchall():
+        seed.add(row[0])
+    return seed
+
 #this function is to make sure we don't have duplicates in the datbase
 def urlValidate(url):
     cur = db.cursor()
@@ -67,6 +75,8 @@ def contentScraper(url, domain):
                     #print(data['@type'])
                     # title
                     title = data['name']
+                    #noticed an error in their json
+                    title = title.replace("<span class=\"fn\">","")
                     #print(title)
                     # link
                     link = data["url"]
@@ -98,20 +108,21 @@ def contentScraper(url, domain):
                         instr += instrList[i] + "\n"
                         i += 1
                     #print(instr)
+                    if urlValidate(link) == 0:
+                        if ing:
+                            print("title:%s" % title)  # print title
+                            print("Date published %s" % datePosted)
+                            print("Url: %s" % link)
+                            print("Description: %s" % descr)
+                            print("imglink: %s" % imglink)  # print image source
+                            print("ingredients: %s" % ing)  # print ingredients
+                            print("instructions: %s" % instr)
+                            add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata) values (%s, %s, %s, %s, %s, %s, %s, %s)"
+                            cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata))
+                            db.commit()
 
-                    if ing:
-                        print("title:%s" % title)  # print title
-                        print("Date published %s" % datePosted)
-                        print("Url: %s" % link)
-                        print("Description: %s" % descr)
-                        print("imglink: %s" % imglink)  # print image source
-                        print("ingredients: %s" % ing)  # print ingredients
-                        print("instructions: %s" % instr)
-                        add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                        cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata))
-                        db.commit()
-
-
+                    else:
+                        print("link in database")
 
         except:
             print("no recipe found @ %s" % url)
@@ -147,18 +158,18 @@ def contentScraper(url, domain):
             for insttxt in soup.find_all('span', {"class": "recipe-directions__list--item"}):
                 instr += insttxt.text + "\n"
             #print(instr)
-
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print(img)  # print image source
-                print(ing)  # print ingredients
-                print(instr)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,instructions) values (%s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, img, instr))
-                db.commit()
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print(img)  # print image source
+                    print(ing)  # print ingredients
+                    print(instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,instructions) values (%s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, img, instr))
+                    db.commit()
         except:
            print("no recipe found @ %s" % url)
 
@@ -198,18 +209,18 @@ def contentScraper(url, domain):
             for litag in instrdiv.find_all('li', class_='instruction'):
                 # prints the p tag content
                 instr = instr + litag.text + "\n"
-
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print("imglink: %s" % img)  # print image source
-                print("ingredients: %s" % ing)  # print ingredients
-                print("instructions: %s" % instr)
-                add_recipe = "insert into recipes (title, link, ing, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, img, datePosted, instr))
-                db.commit()
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % img)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ing, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, img, datePosted, instr))
+                    db.commit()
         except:
             print("no recipe found @ %s" % url)
 
@@ -248,17 +259,18 @@ def contentScraper(url, domain):
                 # prints the p tag content
                 instr = instr + p.text + "\n"
             #print(instr)
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print("imglink: %s" % imglink)  # print image source
-                print("ingredients: %s" % ing)  # print ingredients
-                print("instructions: %s" % instr)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
-                db.commit()
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % imglink)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
+                    db.commit()
 
         except:
             print("no recipe found @ %s" % url)
@@ -301,17 +313,18 @@ def contentScraper(url, domain):
                 # prints the p tag content
                 instr = instr + li.text + "\n"
             #print(instr)
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print("imglink: %s" % imglink)  # print image source
-                print("ingredients: %s" % ing)  # print ingredients
-                print("instructions: %s" % instr)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
-                db.commit()
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % imglink)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
+                    db.commit()
 
         except:
             print("no recipe found @ %s" % url)
@@ -357,18 +370,18 @@ def contentScraper(url, domain):
                     # prints the p tag content
                     instr = instr + li.text + "\n"
             #print(instr)
-
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print("imglink: %s" % imglink)  # print image source
-                print("ingredients: %s" % ing)  # print ingredients
-                print("instructions: %s" % instr)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
-                db.commit()
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % imglink)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
+                    db.commit()
 
         except:
             print("no recipe found @ %s" % url)
@@ -381,19 +394,19 @@ def contentScraper(url, domain):
             # title
             title = soup.find('meta', property='og:title')
             title = title["content"]
-            print(title)
+            #print(title)
             # link
             link = soup.find('meta', property='og:url')
             link = link["content"]
-            print(link)
+            #print(link)
             # image link
             img = soup.find('meta', property='og:image')
             imglink = img["content"]
-            print(imglink)
+            #print(imglink)
             # description
             descr = soup.find('meta', {"name":"description"})
             descr = descr["content"]
-            print(descr)
+            #print(descr)
             # date no date published
             datePosted = time.strftime('%Y-%m-%d %H:%M:%S')
             # ingredients
@@ -406,25 +419,26 @@ def contentScraper(url, domain):
                     # prints the p tag content
                     ing = ing + td.text.strip()
                 ing = ing + "\n"
-            print(ing)
+            #print(ing)
             # instructions are in the same div as the ingredients but not in the blockquote
             instr = ""
             instrdiv = soup.find('div', {"class": "recipe__instructions--content blurred"})
             for p in instrdiv.find_all('p'):
                 # prints the p tag content
                 instr = instr + p.text + "\n"
-            print(instr)
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print("imglink: %s" % imglink)  # print image source
-                print("ingredients: %s" % ing)  # print ingredients
-                print("instructions: %s" % instr)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
-                db.commit()
+            #print(instr)
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % imglink)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
+                    db.commit()
 
         except:
             print("no recipe found @ %s" % url)
@@ -469,18 +483,18 @@ def contentScraper(url, domain):
                     # prints the p tag content
                     instr = instr + p.text + "\n"
             #print(instr)
-
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print("imglink: %s" % imglink)  # print image source
-                print("ingredients: %s" % ing)  # print ingredients
-                print("instructions: %s" % instr)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
-                db.commit()
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % imglink)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
+                    db.commit()
 
         except:
             print("no recipe found @ %s" % url)
@@ -521,17 +535,18 @@ def contentScraper(url, domain):
                     # prints the p tag content
                     instr = instr + p.text + "\n"
             #print(instr)
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print("imglink: %s" % imglink)  # print image source
-                print("ingredients: %s" % ing)  # print ingredients
-                print("instructions: %s" % instr)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
-                db.commit()
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % imglink)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
+                    db.commit()
         except:
             print("no recipe found @ %s" % url)
 
@@ -576,18 +591,18 @@ def contentScraper(url, domain):
             for li in instrdiv.find_all('li'):
                 instr = instr + li.text + "\n"
             #print(instr)
-
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print("imglink: %s" % imglink)  # print image source
-                print("ingredients: %s" % ing)  # print ingredients
-                print("instructions: %s" % instr)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
-                db.commit()
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % imglink)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
+                    db.commit()
 
         except:
             print("no recipe found @ %s" % url)
@@ -628,18 +643,18 @@ def contentScraper(url, domain):
             for p in instrdiv.find_all('p'):
                 instr = instr + p.text.strip() + "\n"
             #print(instr)
-
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print("imglink: %s" % imglink)  # print image source
-                print("ingredients: %s" % ing)  # print ingredients
-                print("instructions: %s" % instr)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata))
-                db.commit()
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % imglink)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata) values (%s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata))
+                    db.commit()
 
         except:
             print("no recipe found @ %s" % url)
@@ -680,18 +695,18 @@ def contentScraper(url, domain):
             for li in instrdiv.find_all('li'):
                 instr = instr + li.text + "\n"
             #print(instr)
-
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print("imglink: %s" % imglink)  # print image source
-                print("ingredients: %s" % ing)  # print ingredients
-                print("instructions: %s" % instr)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata))
-                db.commit()
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % imglink)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata) values (%s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata))
+                    db.commit()
 
         except:
             print("no recipe found @ %s" % url)
@@ -730,18 +745,18 @@ def contentScraper(url, domain):
             #instructions
             instr = data['recipeInstructions']
             #print(instr)
-
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print("imglink: %s" % imglink)  # print image source
-                print("ingredients: %s" % ing)  # print ingredients
-                print("instructions: %s" % instr)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata))
-                db.commit()
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % imglink)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata) values (%s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata))
+                    db.commit()
 
        except:
            print("no recipe found @ %s" % url)
@@ -784,18 +799,18 @@ def contentScraper(url, domain):
                 instr += instrList[i] + "\n"
                 i += 1
             print(instr)
-
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print("imglink: %s" % imglink)  # print image source
-                print("ingredients: %s" % ing)  # print ingredients
-                print("instructions: %s" % instr)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata))
-                db.commit()
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % imglink)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata) values (%s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata))
+                    db.commit()
 
        except:
            print("no recipe found @ %s" % url)
@@ -840,18 +855,18 @@ def contentScraper(url, domain):
             for li in instrdiv.find_all('li'):
                 instr = instr + li.text + "\n"
             #print(instr)
-
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print("imglink: %s" % imglink)  # print image source
-                print("ingredients: %s" % ing)  # print ingredients
-                print("instructions: %s" % instr)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
-                db.commit()
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % imglink)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
+                    db.commit()
 
         except:
             print("no recipe found @ %s" % url)
@@ -891,18 +906,18 @@ def contentScraper(url, domain):
             for p in instrdiv.find_all('p'):
                 instr = instr + p.text + "\n"
             #print(instr)
-
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print("imglink: %s" % imglink)  # print image source
-                print("ingredients: %s" % ing)  # print ingredients
-                print("instructions: %s" % instr)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
-                db.commit()
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % imglink)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
+                    db.commit()
 
         except:
             print("no recipe found @ %s" % url)
@@ -943,18 +958,18 @@ def contentScraper(url, domain):
             for p in instrdiv.find_all("p"):
                 instr += p.text + "\n"
             #print(instr)
-
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print("imglink: %s" % imglink)  # print image source
-                print("ingredients: %s" % ing)  # print ingredients
-                print("instructions: %s" % instr)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata))
-                db.commit()
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % imglink)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata) values (%s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata))
+                    db.commit()
 
        except:
            print("no recipe found @ %s" % url)
@@ -998,18 +1013,18 @@ def contentScraper(url, domain):
                         instr += instrList[i] + "\n"
                         i += 1
                     #print(instr)
-
-                    if ing:
-                        print("title:%s" % title)  # print title
-                        print("Date published %s" % datePosted)
-                        print("Url: %s" % link)
-                        print("Description: %s" % descr)
-                        print("imglink: %s" % imglink)  # print image source
-                        print("ingredients: %s" % ing)  # print ingredients
-                        print("instructions: %s" % instr)
-                        add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                        cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata))
-                        db.commit()
+                    if urlValidate(link) == 0:
+                        if ing:
+                            print("title:%s" % title)  # print title
+                            print("Date published %s" % datePosted)
+                            print("Url: %s" % link)
+                            print("Description: %s" % descr)
+                            print("imglink: %s" % imglink)  # print image source
+                            print("ingredients: %s" % ing)  # print ingredients
+                            print("instructions: %s" % instr)
+                            add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata) values (%s, %s, %s, %s, %s, %s, %s, %s)"
+                            cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata))
+                            db.commit()
 
         except:
             print("no recipe found @ %s" % url)
@@ -1048,18 +1063,18 @@ def contentScraper(url, domain):
             for span in instrdiv.find_all("span"):
                 instr += span.text + "\n"
             #print(instr)
-
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print("imglink: %s" % imglink)  # print image source
-                print("ingredients: %s" % ing)  # print ingredients
-                print("instructions: %s" % instr)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
-                db.commit()
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % imglink)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
+                    db.commit()
 
        except:
            print("no recipe found @ %s" % url)
@@ -1100,18 +1115,18 @@ def contentScraper(url, domain):
             for li in instrdiv.find_all("li"):
                 instr += li.text + "\n"
             print(instr)
-
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print("imglink: %s" % imglink)  # print image source
-                print("ingredients: %s" % ing)  # print ingredients
-                print("instructions: %s" % instr)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
-                db.commit()
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % imglink)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
+                    db.commit()
 
         except:
             print("no recipe found @ %s" % url)
@@ -1156,18 +1171,18 @@ def contentScraper(url, domain):
             for li in instrdiv.find_all("li"):
                 instr += li.text.strip() + "\n"
             print(instr)
-
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print("imglink: %s" % imglink)  # print image source
-                print("ingredients: %s" % ing)  # print ingredients
-                print("instructions: %s" % instr)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
-                db.commit()
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % imglink)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
+                    db.commit()
 
         except:
             print("no recipe found @ %s" % url)
@@ -1213,18 +1228,18 @@ def contentScraper(url, domain):
             for li in instrdiv:
                 instr += li.text.strip() + "\n"
             print(instr)
-
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print("imglink: %s" % imglink)  # print image source
-                print("ingredients: %s" % ing)  # print ingredients
-                print("instructions: %s" % instr)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
-                db.commit()
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % imglink)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
+                    db.commit()
 
         except:
             print("no recipe found @ %s" % url)
@@ -1261,18 +1276,18 @@ def contentScraper(url, domain):
             # instructions
             instr = data['recipeInstructions']
             #print(instr)
-
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print("imglink: %s" % imglink)  # print image source
-                print("ingredients: %s" % ing)  # print ingredients
-                print("instructions: %s" % instr)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata))
-                db.commit()
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % imglink)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata) values (%s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata))
+                    db.commit()
 
         except:
             print("no recipe found @ %s" % url)
@@ -1309,18 +1324,18 @@ def contentScraper(url, domain):
             # instructions
             instr = data['recipeInstructions']
             #print(instr)
-
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print("imglink: %s" % imglink)  # print image source
-                print("ingredients: %s" % ing)  # print ingredients
-                print("instructions: %s" % instr)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata))
-                db.commit()
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % imglink)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata) values (%s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata))
+                    db.commit()
 
         except:
             print("no recipe found @ %s" % url)
@@ -1362,18 +1377,18 @@ def contentScraper(url, domain):
                 i += 1
 
             #print(instr)
-
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print("imglink: %s" % imglink)  # print image source
-                print("ingredients: %s" % ing)  # print ingredients
-                print("instructions: %s" % instr)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata))
-                db.commit()
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % imglink)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata) values (%s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata))
+                    db.commit()
 
         except:
             print("no recipe found @ %s" % url)
@@ -1416,18 +1431,18 @@ def contentScraper(url, domain):
             for p in instrdiv.find_all("p"):
                 instr += p.text + "\n"
             print(instr)
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % imglink)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
+                    db.commit()
 
-            if ing:
-                print("title:%s" % title)  # print title
-                print("Date published %s" % datePosted)
-                print("Url: %s" % link)
-                print("Description: %s" % descr)
-                print("imglink: %s" % imglink)  # print image source
-                print("ingredients: %s" % ing)  # print ingredients
-                print("instructions: %s" % instr)
-                add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions) values (%s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr))
-                db.commit()
-            
         except:
             print("no recipe found @ %s" % url)
