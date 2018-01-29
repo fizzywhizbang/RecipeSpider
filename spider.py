@@ -21,6 +21,9 @@ def preprocess_url(referrer, url):
     if not url:
         return None
 
+    if referrer not in url: #then they are not using absolute links and we need to fix (thanks foodnework.co.uk
+        url = startingurl + url
+
     fields = urlsplit(urljoin(referrer, url))._asdict() # convert to absolute URLs and split
     fields['path'] = re.sub(r'/$', '', fields['path']) # remove trailing /
     fields['fragment'] = '' # remove targets within a page
@@ -34,6 +37,7 @@ def preprocess_url(referrer, url):
         else:
             httpsurl = cleanurl = fields.geturl()
             httpurl = httpsurl.replace('https:', 'http:', 1)
+
         if httpurl not in links and httpsurl not in links:
             # Return URL only if it's not already in links
             return cleanurl
@@ -49,11 +53,15 @@ def scrape(url):
     response = requests.get(url, headers=hdr, proxies=proxy)
     soup = BeautifulSoup(response.content, 'lxml')
     for link in soup.findAll("a"):
-        childurl = preprocess_url(url, link.get("href"))
-        if childurl:
-            if childurl not in links:
-                morelinks.add(childurl)
-                doRecipeScrape(childurl)
+        try:
+            childurl = preprocess_url(url, link.get("href").strip()) #foodnetwork.co.uk taught me a lesson on poor href formatting so I have to strip all blank space
+            if childurl:
+                if childurl not in links:
+                    morelinks.add(childurl)
+                    doRecipeScrape(childurl)
+        except:
+            print("error in childurl:%s" % childurl)
+            
 
 def explorelinks(morelinks):
     payload = morelinks.copy() #copy to payload to allow for increasing size of morelinks otherwise python chokes :)
