@@ -1,28 +1,29 @@
 #!/usr/bin/env python2
 import re
-from six.moves.urllib.parse import urlparse, urljoin, urlsplit, SplitResult
-from six.moves.urllib.request import urlopen, Request
+from six.moves.urllib.parse import urljoin, urlsplit, SplitResult
 import requests
 from bs4 import BeautifulSoup
 import sys
-from scrapme import getProxy
-from SiteLibrary import contentScraper, printSiteList, noPrintSiteList, urlValidate, preSeed
-from fake_useragent import UserAgent
+from SiteLibrary import contentScraper, printSiteList, noPrintSiteList, preSeed, getProxy
 from time import sleep
 import logging
-from stdsitelib import hdr
 
 logging.basicConfig(filename = 'spider.log', level = logging.INFO)
 
+hdr = {
+    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
+    'Accept-Encoding': 'none',
+    'Accept-Language': 'en-US,en;q=0.8',
+    'Connection': 'keep-alive'}
+
 
 def preprocess_url(referrer, url):
-    # Clean and filter URLs before scraping.
-
+    ''' Clean and filter URLs before scraping.
+    '''
     if not url:
         return None
-
-    if referrer not in url: #then they are not using absolute links and we need to fix (thanks foodnework.co.uk
-        url = startingurl + url
 
     fields = urlsplit(urljoin(referrer, url))._asdict() # convert to absolute URLs and split
     fields['path'] = re.sub(r'/$', '', fields['path']) # remove trailing /
@@ -37,7 +38,6 @@ def preprocess_url(referrer, url):
         else:
             httpsurl = cleanurl = fields.geturl()
             httpurl = httpsurl.replace('https:', 'http:', 1)
-
         if httpurl not in links and httpsurl not in links:
             # Return URL only if it's not already in links
             return cleanurl
@@ -53,15 +53,15 @@ def scrape(url):
     response = requests.get(url, headers=hdr, proxies=proxy)
     soup = BeautifulSoup(response.content, 'lxml')
     for link in soup.findAll("a"):
-        try:
-            childurl = preprocess_url(url, link.get("href").strip()) #foodnetwork.co.uk taught me a lesson on poor href formatting so I have to strip all blank space
-            if childurl:
-                if childurl not in links:
-                    morelinks.add(childurl)
-                    doRecipeScrape(childurl)
-        except:
-            print("error in childurl:%s" % childurl)
-            
+        childurl = preprocess_url(url, link.get("href"))
+        if type(childurl) is str: #if this is a string then clean the url
+            childurl = childurl.strip() #thanks for the lesson on poorly formated code from foodnetwork.co.uk
+
+        if childurl:
+            if childurl not in links:
+                morelinks.add(childurl)
+                doRecipeScrape(childurl)
+
 
 def explorelinks(morelinks):
     payload = morelinks.copy() #copy to payload to allow for increasing size of morelinks otherwise python chokes :)
@@ -71,19 +71,19 @@ def explorelinks(morelinks):
         morelinks.discard(link)  # remove without error from morelinks after scraped or we will search forever
         print("Scraped:%s %s of Payload:%s Morelinks:%s" % (link, counter, len(payload), len(morelinks)))
         counter += 1
+        if len(morelinks) == 0:
+            break
+
 
 def doRecipeScrape(url): #check page for recipes and add to links so we don't search them a second time for a recipe
     if domain in printSiteList:
         if "print" in url:
-            #print("Scraping print page {:s} ...".format(url))
             #check if url exists in database
             if url not in links:
                 contentScraper(url, domain)
                 links.add(url)  # add to links
 
-
-    if domain in noPrintSiteList and ".rdf" not in url and ".rss" not in url and "print" not in url: #skip news feeds and sites with poorly formated print pages
-        #print("Scraping non print page {:s} ...".format(url))
+    if domain in noPrintSiteList and ".rdf" not in url and ".rss" not in url and "print" not in url and "replyto" not in url: #skip news feeds and sites with poorly formated print pages
         # check if url exists in database
         if url not in links:
             contentScraper(url, domain)
