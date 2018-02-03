@@ -28,7 +28,7 @@ noPrintSiteList.extend(['www.dadcooksdinner.com','www.eatingwell.com','elanaspan
 noPrintSiteList.extend(['www.foodnetwork.com','www.foodnetwork.co.uk'])
 
 #database connection
-db = MySQLdb.connect(host="localhost", user="root", passwd="helifino", db="recipefinder", charset='utf8', use_unicode=True)
+db = MySQLdb.connect(host="localhost", user="recipelibrarian", passwd="cheftobe", db="recipelibrarian", charset='utf8', use_unicode=True)
 cursor= db.cursor()
 
 #get a proxy so I don't get blocked from spidering web sites (it has happened already)
@@ -48,12 +48,42 @@ def urlValidate(url):
     cur.execute("select count(*) from recipes where link=%s", [url])
     for row in cur.fetchall():
         return row[0]
+
+
+def linktempAdd(link):
+    cur = db.cursor()
+    add_link = "insert into linkstemp (link) values (%s)"
+    cur.execute(add_link, (link,))
+    db.commit()
+
+def checkTemp(url):
+    cur = db.cursor()
+    cur.execute("select count(*) from linkstemp where link=%s", [url])
+    for row in cur.fetchall():
+        return row[0]
+
+def dumpLinksTemp():
+    cur = db.cursor()
+    cur.execute("TRUNCATE `recipelibrarian`.`linkstemp`")
+    db.commit()
+
 #this is for scraping all content
 def contentScraper(url, domain):
-    #pull the page data
-    response = requests.get(url, headers=hdr, proxies=proxy)
-    #put it in BS
-    soup = BeautifulSoup(response.content, "lxml")
+    response = ''
+    while response == '':
+        try:
+            #pull the page data
+            response = requests.get(url, headers=hdr, proxies=proxy)
+            #put it in BS
+            soup = BeautifulSoup(response.content, "lxml")
+        except:
+            print("Connection refused by the server..")
+            print("Let me sleep for 5 seconds")
+            print("ZZzzzz...")
+            time.sleep(5)
+            print("Was a nice sleep, now let me continue...")
+            continue
+
 
 # pinch of yum
     if "pinchofyum" in url:
@@ -110,8 +140,9 @@ def contentScraper(url, domain):
                             print("imglink: %s" % imglink)  # print image source
                             print("ingredients: %s" % ing)  # print ingredients
                             print("instructions: %s" % instr)
-                            add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
-                            cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata, imgblob))
+                            siteid = 1
+                            add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                            cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata, imgblob, siteid))
                             db.commit()
 
                     else:
@@ -990,7 +1021,7 @@ def contentScraper(url, domain):
             for recipe in soup.find_all('script', type='application/ld+json'):
                 data = json.loads(recipe.text)
                 if "Recipe" in data['@type']:
-                    rawdata = soup.find('script', type='application/ld+json').text
+                    rawdata = recipe.text
                     # title
                     title = data['name']
                     #print(title)
@@ -1022,6 +1053,7 @@ def contentScraper(url, domain):
                         instr += instrList[i] + "\n"
                         i += 1
                     #print(instr)
+                    siteid = 17
                     if urlValidate(link) == 0:
                         if ing:
                             print("title:%s" % title)  # print title
@@ -1031,10 +1063,9 @@ def contentScraper(url, domain):
                             print("imglink: %s" % imglink)  # print image source
                             print("ingredients: %s" % ing)  # print ingredients
                             print("instructions: %s" % instr)
-                            add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
-                            cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata, imgblob))
+                            add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                            cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata, imgblob, siteid))
                             db.commit()
-
         except:
             print("no recipe found @ %s" % url)
 #eatingwell.com
@@ -1191,8 +1222,9 @@ def contentScraper(url, domain):
                     print("imglink: %s" % imglink)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob))
+                    siteid = 20
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob, siteid))
                     db.commit()
 
         except:
