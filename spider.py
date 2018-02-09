@@ -51,8 +51,8 @@ def preprocess_url(referrer, url):
         else:
             httpsurl = cleanurl = fields.geturl()
             httpurl = httpsurl.replace('https:', 'http:', 1)
-
-        return cleanurl
+        if constrain in httpsurl or constrain in httpurl:
+            return cleanurl
 
     return None
 
@@ -73,19 +73,22 @@ def scrape(url):
         if childurl:
             if checkTemp(childurl) == 0:
                 morelinks.add(childurl)
-                linktempAdd(childurl)
+                if childurl not in startingurl:
+                    linktempAdd(childurl)
+                print("checking %s for recipe" % childurl)
                 doRecipeScrape(childurl)
-
 
 def explorelinks(morelinks):
     payload = morelinks.copy()  # copy to payload to allow for increasing size of morelinks otherwise python chokes :)
     counter = 0  # for testing let's show a counter to know where I am in the queue
     for link in payload:
+        print(link)
         scrape(link)
         morelinks.discard(link)  # remove without error from morelinks after scraped or we will search forever
         print("Scraped:%s %s of Payload:%s Morelinks:%s" % (link, counter, len(payload), len(morelinks)))
         counter += 1
         if len(morelinks) == 0:
+            dumpLinksTemp()
             break
 
 
@@ -99,14 +102,21 @@ def doRecipeScrape(url):  # check page for recipes and add to links so we don't 
             # check if url exists in database
             if urlValidate(url) == 0:
                 contentScraper(url, domain)
-
     if domain in noPrintSiteList and ".rdf" not in url and ".rss" not in url and "print" not in url and "replyto" not in url:  # skip news feeds and sites with poorly formated print pages
         # check if url exists in database
         if urlValidate(url) == 0:
             contentScraper(url, domain)
 
-    if memoryUse >= 90: #let's kill the process if utilization gets dangerously high
+    if memoryUse >= 85: #let's kill the process if utilization gets dangerously high
         #dump more links to file to pickup where we left off since I don't have the ram to run this and may never
+        filename = domain + ".txt"
+        f = open(filename,"w")
+        print(len(morelinks))
+        for item in morelinks:
+            f.write(item + "\n")
+            print(item)
+        f.close()
+        dumpLinksTemp()
         killproc(process)
         return False
 
@@ -115,25 +125,32 @@ try:
     print("%s" % (sys.argv[1]))  # for testing
     url = sys.argv[1]
 
+    #### defs
+    domain = urlsplit(url).netloc
+    startingurl = url
+    if len(sys.argv) > 2:
+        constrain = url + sys.argv[2]
+    else:
+        constrain = ""
+
+    #dump temp links just in case the program didn't close nicely
+    dumpLinksTemp()
+
     #get my process id
     process = filter(lambda p: p.name() == "python2" and p.username() == "marc", psutil.process_iter())
     for i in process:
         process = i.pid
         print("Process ID:%s" % process)
 
-    #### defs
-    domain = urlsplit(url).netloc
-    startingurl = url
-
     # start process
     morelinks = set()  # morelinks is anything that's not in the database meaning it's not a recipe
     ######################
 
     scrape(url)  # return links from first page and go from there
-
     if morelinks:
         while morelinks:
             explorelinks(morelinks)
+
     #dumpLinksTemp()  # temp temp table contents
 
 except IOError as e:

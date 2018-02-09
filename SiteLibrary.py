@@ -19,17 +19,17 @@ sites.extend(['http://www.cooks.com','https://www.cooksillustrated.com','https:/
 sites.extend(['https://food52.com','http://www.foodandwine.com','http://www.geniuskitchen.com','http://www.foodnetwork.com','http://www.foodnetwork.co.uk'])
 
 #sites to pull from the print option as this should make the scraping faster
-printSiteList = ['rachlmansfield.com','www.bhg.com']
+printSiteList = ['rachlmansfield.com']
 
 #sites either without a print option or poorly formated print pages
 noPrintSiteList = ['allrecipes.com','pinchofyum.com','www.101cookbooks.com','12tomatoes.com','www.americastestkitchen.com','www.bbc.co.uk','www.bbcgoodfood.com','www.bigoven.com']
 noPrintSiteList.extend(['www.bigoven.com','www.bonappetit.com','www.chowhound.com','www.cookingchanneltv.com','cooking.nytimes.com','www.cooks.com','www.cooksillustrated.com'])
 noPrintSiteList.extend(['www.dadcooksdinner.com','www.eatingwell.com','elanaspantry.com','www.epicurious.com','food52.com','www.foodandwine.com','www.geniuskitchen.com'])
-noPrintSiteList.extend(['www.foodnetwork.com','www.foodnetwork.co.uk'])
+noPrintSiteList.extend(['www.foodnetwork.com','www.foodnetwork.co.uk','www.bhg.com'])
 
 #database connection
 db = MySQLdb.connect(host="localhost", user="recipelibrarian", passwd="cheftobe", db="recipelibrarian", charset='utf8', use_unicode=True)
-cursor= db.cursor()
+cursor = db.cursor()
 
 #get a proxy so I don't get blocked from spidering web sites (it has happened already)
 proxy = getProxy()
@@ -47,7 +47,8 @@ def urlValidate(url):
     cur = db.cursor()
     cur.execute("select count(*) from recipes where link=%s", [url])
     for row in cur.fetchall():
-        return row[0]
+        count = row[0]
+    return count
 
 
 def linktempAdd(link):
@@ -60,15 +61,28 @@ def checkTemp(url):
     cur = db.cursor()
     cur.execute("select count(*) from linkstemp where link=%s", [url])
     for row in cur.fetchall():
-        return row[0]
+        count = row[0]
+    return count
+
 
 def dumpLinksTemp():
     cur = db.cursor()
     cur.execute("TRUNCATE `recipelibrarian`.`linkstemp`")
     db.commit()
 
+def getSiteID(domain):
+    cur = db.cursor()
+    domain = domain.replace("www.","")
+    cur.execute("select id from recipesites where domain=%s", [domain])
+    for row in cur.fetchall():
+        id = row[0]
+    return id
+
+
 #this is for scraping all content
 def contentScraper(url, domain):
+    siteid = getSiteID(domain)
+
     response = ''
     while response == '':
         try:
@@ -83,8 +97,6 @@ def contentScraper(url, domain):
             time.sleep(5)
             print("Was a nice sleep, now let me continue...")
             continue
-
-
 # pinch of yum
     if "pinchofyum" in url:
         try:
@@ -140,7 +152,6 @@ def contentScraper(url, domain):
                             print("imglink: %s" % imglink)  # print image source
                             print("ingredients: %s" % ing)  # print ingredients
                             print("instructions: %s" % instr)
-                            siteid = 1
                             add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
                             cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata, imgblob, siteid))
                             db.commit()
@@ -192,8 +203,8 @@ def contentScraper(url, domain):
                     print(img)  # print image source
                     print(ing)  # print ingredients
                     print(instr)
-                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,instructions, imageblob) values (%s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, instr, imgblob))
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,instructions, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, instr, imgblob, siteid))
                     db.commit()
         except:
            print("no recipe found @ %s" % url)
@@ -244,8 +255,8 @@ def contentScraper(url, domain):
                     print("imglink: %s" % img)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    add_recipe = "insert into recipes (title, link, ing, description, image ,dateposted, instructions, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, img, datePosted, instr, imgblob))
+                    add_recipe = "insert into recipes (title, link, ing, description, image ,dateposted, instructions, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, img, datePosted, instr, imgblob, siteid))
                     db.commit()
         except:
             print("no recipe found @ %s" % url)
@@ -295,8 +306,8 @@ def contentScraper(url, domain):
                     print("imglink: %s" % imglink)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob))
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob, siteid))
                     db.commit()
 
         except:
@@ -350,8 +361,8 @@ def contentScraper(url, domain):
                     print("imglink: %s" % imglink)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob))
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob, siteid))
                     db.commit()
 
         except:
@@ -408,8 +419,8 @@ def contentScraper(url, domain):
                     print("imglink: %s" % imglink)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob))
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob, siteid))
                     db.commit()
 
         except:
@@ -466,8 +477,8 @@ def contentScraper(url, domain):
                     print("imglink: %s" % imglink)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob))
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob, siteid))
                     db.commit()
 
         except:
@@ -523,8 +534,8 @@ def contentScraper(url, domain):
                     print("imglink: %s" % imglink)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob))
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob, siteid))
                     db.commit()
 
         except:
@@ -576,8 +587,8 @@ def contentScraper(url, domain):
                     print("imglink: %s" % imglink)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob))
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob, siteid))
                     db.commit()
         except:
             print("no recipe found @ %s" % url)
@@ -633,8 +644,8 @@ def contentScraper(url, domain):
                     print("imglink: %s" % imglink)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob))
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob, siteid))
                     db.commit()
 
         except:
@@ -686,8 +697,8 @@ def contentScraper(url, domain):
                     print("imglink: %s" % imglink)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata, imgblob))
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata, imgblob, siteid))
                     db.commit()
 
         except:
@@ -739,8 +750,8 @@ def contentScraper(url, domain):
                     print("imglink: %s" % imglink)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata, imgblob))
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata, imgblob, siteid))
                     db.commit()
 
         except:
@@ -790,8 +801,8 @@ def contentScraper(url, domain):
                     print("imglink: %s" % imglink)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata, imgblob))
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata, imgblob, siteid))
                     db.commit()
 
        except:
@@ -845,8 +856,8 @@ def contentScraper(url, domain):
                     print("imglink: %s" % imglink)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata, imgblob))
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata, imgblob, siteid))
                     db.commit()
 
        except:
@@ -902,8 +913,8 @@ def contentScraper(url, domain):
                     print("imglink: %s" % imglink)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob))
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob, siteid))
                     db.commit()
 
         except:
@@ -953,8 +964,8 @@ def contentScraper(url, domain):
                     print("imglink: %s" % imglink)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob))
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob, siteid))
                     db.commit()
 
         except:
@@ -1006,8 +1017,8 @@ def contentScraper(url, domain):
                     print("imglink: %s" % imglink)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata, imgblob))
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata, imgblob, siteid))
                     db.commit()
 
        except:
@@ -1053,7 +1064,6 @@ def contentScraper(url, domain):
                         instr += instrList[i] + "\n"
                         i += 1
                     #print(instr)
-                    siteid = 17
                     if urlValidate(link) == 0:
                         if ing:
                             print("title:%s" % title)  # print title
@@ -1112,8 +1122,8 @@ def contentScraper(url, domain):
                     print("imglink: %s" % imglink)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob))
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob, siteid))
                     db.commit()
 
        except:
@@ -1165,8 +1175,8 @@ def contentScraper(url, domain):
                     print("imglink: %s" % imglink)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob))
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob, siteid))
                     db.commit()
 
         except:
@@ -1222,7 +1232,6 @@ def contentScraper(url, domain):
                     print("imglink: %s" % imglink)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    siteid = 20
                     add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
                     cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob, siteid))
                     db.commit()
@@ -1281,8 +1290,8 @@ def contentScraper(url, domain):
                     print("imglink: %s" % imglink)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob))
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob, siteid))
                     db.commit()
 
         except:
@@ -1330,8 +1339,8 @@ def contentScraper(url, domain):
                     print("imglink: %s" % imglink)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata, imgblob))
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata, imgblob, siteid))
                     db.commit()
 
         except:
@@ -1379,8 +1388,8 @@ def contentScraper(url, domain):
                     print("imglink: %s" % imglink)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata, imgblob))
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata, imgblob, siteid))
                     db.commit()
 
         except:
@@ -1433,8 +1442,8 @@ def contentScraper(url, domain):
                     print("imglink: %s" % imglink)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata, imgblob))
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, rawdata, imgblob, siteid))
                     db.commit()
 
         except:
@@ -1488,9 +1497,61 @@ def contentScraper(url, domain):
                     print("imglink: %s" % imglink)  # print image source
                     print("ingredients: %s" % ing)  # print ingredients
                     print("instructions: %s" % instr)
-                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob) values (%s, %s, %s, %s, %s, %s, %s, %s)"
-                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob))
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe, (title, link, ing, descr, imglink, datePosted, instr, imgblob, siteid))
                     db.commit()
 
         except:
             print("no recipe found @ %s" % url)
+
+#delish.com
+    if "delish.com" in url:
+        try:
+            # json and html scraping since the instructions are not in the json
+            rawdata = soup.find('script', type='application/ld+json').text
+            data = json.loads(soup.find('script', type='application/ld+json').text)
+            # title
+            title = data['name']
+            # print(title)
+            # link
+            link = url
+            # print(link)
+            # image link
+            imglink = soup.find("meta", property="og:image")
+            imglink = imglink["content"]
+            imgblob = imagegrabber(imglink)
+            # print(imglink)
+            # description
+            descr = data['description']
+            # print(descr)
+            # date published
+            datePosted = data["datePublished"].replace("T", " ")[:-10]
+            # print(datePosted)
+            # ingredients loop through the ingredient list
+            ing = ""
+            ingList = data['recipeIngredient']
+            i = 0
+            while i < len(ingList):
+                ing += ingList[i].strip() + "\n"
+                i += 1
+            # print(ing)
+            # instructions
+            instr = data['recipeInstructions']
+            # print(instr)
+            if urlValidate(link) == 0:
+                if ing:
+                    print("title:%s" % title)  # print title
+                    print("Date published %s" % datePosted)
+                    print("Url: %s" % link)
+                    print("Description: %s" % descr)
+                    print("imglink: %s" % imglink)  # print image source
+                    print("ingredients: %s" % ing)  # print ingredients
+                    print("instructions: %s" % instr)
+                    add_recipe = "insert into recipes (title, link, ingredients, description, image ,dateposted, instructions, jsondata, imageblob, siteid) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                    cursor.execute(add_recipe,(title, link, ing, descr, imglink, datePosted, instr, rawdata, imgblob, siteid))
+                    db.commit()
+        except:
+            print("no recipe found @ %s" % url)
+
+    #must stay at end to release soup from memory
+    soup.decompose()
